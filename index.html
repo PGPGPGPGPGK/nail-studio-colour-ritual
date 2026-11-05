@@ -35,7 +35,7 @@ const colors=[{name:'Sage',second:'Whisper',hex:'#859570',desc:'Soft, grounded a
 const $=id=>document.getElementById(id), sw=$('swatches'), track=$('ritual'), stage=document.querySelector('.stage');
 const reduced=matchMedia('(prefers-reduced-motion:reduce)'), ns='http://www.w3.org/2000/svg';
 const masks=['M1034 238 C1054 208 1134 193 1196 195 C1243 195 1266 214 1266 246 C1267 281 1254 299 1214 306 C1154 317 1073 306 1044 285 C1029 274 1027 253 1034 238Z', 'M866 425 C886 397 983 378 1044 385 C1086 390 1110 408 1109 437 C1108 471 1090 493 1057 498 C994 511 911 500 883 478 C865 464 858 442 866 425Z', 'M955 624 C972 595 1048 582 1107 588 C1152 590 1180 610 1179 638 C1178 670 1166 692 1138 698 C1081 710 1003 698 973 680 C954 670 946 644 955 624Z', 'M318 190 L369 208 C350 257 327 318 290 365 C275 384 271 402 276 432 L284 476 C288 512 240 515 242 480 L250 431 C252 405 239 386 223 371 C216 362 224 348 236 327 C272 273 294 230 318 190Z', 'M120 552 C150 529 280 529 313 548 L316 574 L324 581 L324 591 L314 599 L315 629 L324 636 L323 647 L313 654 L314 682 L324 688 L322 702 C369 716 421 724 431 748 L432 941 L0 941 L0 756 C0 731 65 719 108 706 L108 692 L118 683 L117 657 L107 647 L107 637 L117 630 L117 602 L106 591 L108 582 L117 574Z'];
-let active=-1, raf=0, settleTimer=0, snapping=false, scrollDirection=1, lastScrollY=scrollY;
+let active=-1, raf=0, settleTimer=0, snapping=false, scrollDirection=1, lastScrollY=scrollY, restingIndex=0, snapIndex=0;
 function element(tag,attrs={}){const el=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,value));return el}
 const layers=colors.map((color,index)=>{
  const parts=['hand','bottle','brush'].map((part,n)=>{
@@ -54,16 +54,17 @@ function positionAt(p){const raw=p*4,base=Math.min(3,Math.floor(raw)),t=Math.max
 function update(){raf=0;const max=Math.max(1,track.offsetHeight-stage.offsetHeight),p=Math.max(0,Math.min(1,(scrollY-track.offsetTop)/max));$('progress').style.width=p*100+'%';const position=reduced.matches?Math.round(p*4):positionAt(p);renderCopy(Math.round(position));layers.forEach((parts,i)=>{const distance=i-position,visible=Math.abs(distance)<1.05;parts.forEach((part,n)=>{part.style.display=visible?'':'none';if(visible){const angle=distance*105*(n===0?-1:1);part.setAttribute('transform','rotate('+angle+' '+(n===0?'2050 470':'-470 580')+')')}})})}
 function schedule(){if(!raf)raf=requestAnimationFrame(update)}
 function restScrollY(i){return track.offsetTop+i/4*Math.max(1,track.offsetHeight-stage.offsetHeight)}
-function go(i){clearTimeout(settleTimer);i=Math.max(0,Math.min(4,i));snapping=true;window.scrollTo({top:restScrollY(i),behavior:reduced.matches?'instant':'smooth'});settleTimer=setTimeout(finishScroll,200)}
+function go(i){clearTimeout(settleTimer);i=Math.max(0,Math.min(4,i));snapping=true;snapIndex=i;window.scrollTo({top:restScrollY(i),behavior:reduced.matches?'instant':'smooth'});settleTimer=setTimeout(finishScroll,200)}
 function finishScroll(){
  clearTimeout(settleTimer);
- if(snapping){snapping=false;lastScrollY=scrollY;return}
+ if(snapping){snapping=false;restingIndex=snapIndex;lastScrollY=scrollY;return}
  const start=track.offsetTop,end=restScrollY(4);
  if(scrollY<start||scrollY>end)return;
  const raw=(scrollY-start)/(end-start)*4,nearest=Math.round(raw);
  if(Math.abs(scrollY-restScrollY(nearest))<2)return;
  // Complete the next scene in the user's scrolling direction.
- const target=scrollDirection>0?Math.ceil(raw-.002):Math.floor(raw+.002);
+ const direction=Math.abs(raw-restingIndex)>.002?Math.sign(raw-restingIndex):scrollDirection;
+ const target=direction>0?Math.ceil(raw-.002):Math.floor(raw+.002);
  go(target);
 }
 function onScroll(){if(!snapping&&Math.abs(scrollY-lastScrollY)>.5)scrollDirection=scrollY>lastScrollY?1:-1;lastScrollY=scrollY;schedule();clearTimeout(settleTimer);settleTimer=setTimeout(finishScroll,200)}
