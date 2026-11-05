@@ -1,2 +1,3 @@
-# nail-studio-colour-ritual
-Nail Studio by Sahithi — The Colour Ritual. Interactive design concept for review.
+# The Colour Ritual
+
+Original interactive Nail Studio by Sahithi design concept for Arun’s review. No live booking functionality. Production website is separate.
